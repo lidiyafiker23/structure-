@@ -1,0 +1,32 @@
+1,POST  localhost:3000/positions
+
+{
+  "name": "CEO",
+  "description": "Chief Executive Officer"
+}
+
+{
+  "name": "CTO",
+  "description": "Chief Technology Officer",
+  "parentId": "CEO_id"
+}
+{
+  "name": "Project Manager",
+  "description": "Manages projects",
+  "parentId": "CTO_ID"
+}
+
+2,PUT   localhost:3000/positions/:id
+
+ {
+  "name": "Manager",
+  "description": "Responsible for managing teams",
+   "parentId": ""
+}
+
+3,GET   localhost:3000/positions
+  GET   localhost:3000/positions/:id
+  GET   localhost:3000/positions/hierarchy
+  GET   localhost:3000/positions/:id/children
+
+4,DELETE  localhost:3000/positions/:id

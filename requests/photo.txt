@@ -1,0 +1,28 @@
+1,POST   localhost:3000/photos
+Form Data 
+
+{
+  "name": "Sample Photo",
+  "description": "Sample Description",
+  "filename": "sample.jpg",
+  "views": 0,
+  "isPublished": true,
+  "file": <select a file>
+}
+
+2,PUT   localhost:3000/photos/:id
+
+{
+  "name": "Sample Photo Updated",
+  "description": "Sample Description Updated",
+  "filename": "sample-updated.jpg",
+  "views": 0,
+  "isPublished": false
+   "file": <select a file>
+}
+
+3,GET   localhost:3000/photos
+  GET   localhost:3000/photos/:id
+  GET   localhost:3000/photos/view/:filename
+  //View Photo and Increment Views
+4,DELETE   localhost:3000/photos/:id

@@ -57,29 +57,29 @@ export class PhotoController {
   }
 
   @Get(':id')
-  async findOne(@Param('id') id: string): Promise<PhotoEntity> {
-    const photo = await this.photoService.findOne(+id);
+  async findOne(@Param('id') id: number): Promise<PhotoEntity> {
+    const photo = await this.photoService.findOne(id);
     if (!photo) {
       throw new NotFoundException(`Photo with ID "${id}" not found`);
     }
     return photo;
   }
+
   @Put(':id')
   async update(
-    @Param('id') id: string,
+    @Param('id') id: number,
     @Body() updatePhotoDto: UpdatePhotoDto,
   ): Promise<PhotoEntity> {
-    const updatedPhoto = await this.photoService.update(+id, updatePhotoDto);
+    const updatedPhoto = await this.photoService.update(id, updatePhotoDto);
     return updatedPhoto;
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
+  remove(@Param('id') id: number) {
     return this.photoService.remove(id);
   }
 
   // New route to serve the photo and increment the view count
-
   @Get('view/:filename')
   async viewPhoto(@Param('filename') filename: string, @Res() res: Response) {
     const photo = await this.photoService.findByFilename(filename);
@@ -87,11 +87,9 @@ export class PhotoController {
       throw new NotFoundException('Photo not found');
     }
 
-    // Increment the view count
     await this.photoService.incrementViewCount(photo.id);
 
-    // Serve the photo file
-    res.setHeader('Content-Type', 'image/jpeg'); // Set the appropriate content type for your image
+    res.setHeader('Content-Type', 'image/jpeg');
     return res.sendFile(join(process.cwd(), 'uploads', filename));
   }
 }

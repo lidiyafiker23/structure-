@@ -6,13 +6,19 @@ import {
   Param,
   Patch,
   Post,
-  ParseIntPipe,
+  ParseUUIDPipe,
+  HttpStatus,
+  HttpCode,
+  Query,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserEntity } from '../entities/user.entity';
+import { FindAllQueryDto } from './dto/findall-query.dto';
+import { ApiTags } from '@nestjs/swagger';
 
+@ApiTags('users')
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
@@ -26,7 +32,7 @@ export class UsersController {
   // PATCH /users/:id
   @Patch(':id')
   async updateUser(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() updateUserDto: UpdateUserDto,
   ): Promise<UserEntity> {
     return this.usersService.updateUser(id, updateUserDto);
@@ -34,21 +40,32 @@ export class UsersController {
 
   // GET /users
   @Get()
+  async findAll(@Query() query: FindAllQueryDto): Promise<{
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+    results: UserEntity[];
+  }> {
+    return this.usersService.findAll(query.q, query.page, query.limit);
+  }
+
+  // GET /users/all
+  @Get('all')
   async getAllUsers(): Promise<UserEntity[]> {
     return this.usersService.getAllUsers();
   }
 
   // GET /users/:id
   @Get(':id')
-  async getUserById(
-    @Param('id', ParseIntPipe) id: number,
-  ): Promise<UserEntity> {
-    return this.usersService.getUserById(id);
+  async findOne(@Param('id', ParseUUIDPipe) id: string): Promise<UserEntity> {
+    return this.usersService.findOne(id);
   }
 
   // DELETE /users/:id
+  @HttpCode(HttpStatus.NO_CONTENT) //204
   @Delete(':id')
-  async deleteUser(@Param('id', ParseIntPipe) id: number): Promise<void> {
+  async deleteUser(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
     return this.usersService.remove(id);
   }
 }

@@ -1,12 +1,15 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { PositionsController } from './position.controller';
-import { PositionService } from './position.service'; // Adjust the import path if needed
-import { UsersService } from '../users/users.service'; // Adjust the import path if needed
-import { PositionEntity } from '../entities/position.entity'; // Adjust the import path if needed
+import { PositionService } from './position.service';
+import { CreatePositionDto } from './dto/create-position.dto';
+import { UpdatePositionDto } from './dto/update-position.dto';
+import { PositionEntity } from '../entities/position.entity';
+import { UsersService } from '../users/users.service';
+import { HttpException, HttpStatus, NotFoundException } from '@nestjs/common';
 
 describe('PositionsController', () => {
   let controller: PositionsController;
-  let service: PositionService;
+  let positionService: PositionService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -19,127 +22,232 @@ describe('PositionsController', () => {
             update: jest.fn(),
             getAllPositions: jest.fn(),
             getPositionHierarchy: jest.fn(),
-            getPositionById: jest.fn(),
-            deletePosition: jest.fn(),
+            findOne: jest.fn(),
+            removePosition: jest.fn(),
             getPositionChildren: jest.fn(),
           },
         },
         {
           provide: UsersService,
-          useValue: {}, // Mock UsersService methods if needed
+          useValue: {},
         },
       ],
     }).compile();
 
     controller = module.get<PositionsController>(PositionsController);
-    service = module.get<PositionService>(PositionService);
+    positionService = module.get<PositionService>(PositionService);
   });
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
   });
 
-  it('should create a position', async () => {
-    const dto = {
-      name: 'CTO',
-      description: 'Chief Technology Officer',
-      parentId: '1',
-    };
-    const result: PositionEntity = {
-      id: '1',
-      name: 'CTO',
-      description: 'Chief Technology Officer',
-      parent: { id: '1' } as PositionEntity, // Mock the parent position entity
-      children: [],
-      users: [],
-    };
-    jest.spyOn(service, 'createPosition').mockResolvedValue(result);
+  describe('createPosition', () => {
+    it('should create a new position', async () => {
+      const createDto: CreatePositionDto = {
+        name: 'Test Position',
+        description: 'Test position description',
+        parentId: null,
+      };
 
-    expect(await controller.createPosition(dto)).toBe(result);
-  });
-
-  it('should update a position', async () => {
-    const dto = {
-      name: 'CTO',
-      description: 'Chief Technology Officer',
-      parentId: '1',
-    };
-    const result: PositionEntity = {
-      id: '1',
-      name: 'CTO',
-      description: 'Chief Technology Officer',
-      parent: { id: '1' } as PositionEntity, // Mock the parent position entity
-      children: [],
-      users: [],
-    };
-    jest.spyOn(service, 'update').mockResolvedValue(result);
-
-    expect(await controller.update('1', dto)).toBe(result);
-  });
-
-  it('should get all positions', async () => {
-    const result: PositionEntity[] = [
-      {
+      const newPosition: PositionEntity = {
         id: '1',
-        name: 'CTO',
-        description: 'Chief Technology Officer',
+        name: createDto.name,
+        description: createDto.description,
         parent: null,
         children: [],
         users: [],
-      },
-    ];
-    jest.spyOn(service, 'getAllPositions').mockResolvedValue(result);
+      };
 
-    expect(await controller.getAllPositions()).toBe(result);
+      jest
+        .spyOn(positionService, 'createPosition')
+        .mockResolvedValue(newPosition);
+
+      const result = await controller.createPosition(createDto);
+
+      expect(result).toEqual(newPosition);
+    });
   });
 
-  it('should get position hierarchy', async () => {
-    const result = [
-      {
+  describe('update', () => {
+    it('should update a position', async () => {
+      const updateDto: UpdatePositionDto = {
+        name: 'Updated Position',
+        description: 'Updated position description',
+        parentId: null,
+      };
+
+      const updatedPosition: PositionEntity = {
         id: '1',
-        name: 'CTO',
-        description: 'Chief Technology Officer',
-        children: [],
-      },
-    ];
-    jest.spyOn(service, 'getPositionHierarchy').mockResolvedValue(result);
-
-    expect(await controller.getPositionHierarchy()).toBe(result);
-  });
-
-  it('should get position by id', async () => {
-    const result: PositionEntity = {
-      id: '1',
-      name: 'CTO',
-      description: 'Chief Technology Officer',
-      parent: null,
-      children: [],
-      users: [],
-    };
-    jest.spyOn(service, 'getPositionById').mockResolvedValue(result);
-
-    expect(await controller.getPositionById('1')).toBe(result);
-  });
-
-  it('should delete a position', async () => {
-    jest.spyOn(service, 'deletePosition').mockResolvedValue(undefined);
-
-    expect(await controller.removePosition('1')).toBeUndefined();
-  });
-
-  it('should get position children', async () => {
-    const result: PositionEntity[] = [
-      {
-        id: '2',
-        name: 'Product Manager',
-        description: 'Product Manager',
-        parent: { id: '1' } as PositionEntity, // Mock the parent position entity
+        name: updateDto.name,
+        description: updateDto.description,
+        parent: null,
         children: [],
         users: [],
-      },
-    ];
-    jest.spyOn(service, 'getPositionChildren').mockResolvedValue(result);
+      };
 
-    expect(await controller.getPositionChildren('1')).toBe(result);
+      jest.spyOn(positionService, 'update').mockResolvedValue(updatedPosition);
+
+      const result = await controller.update('1', updateDto);
+
+      expect(result).toEqual(updatedPosition);
+    });
+
+    it('should throw NotFoundException for non-existent position', async () => {
+      jest
+        .spyOn(positionService, 'update')
+        .mockRejectedValue(new NotFoundException('Position not found'));
+
+      try {
+        await controller.update('999', { name: 'Updated Position' });
+      } catch (error) {
+        expect(error).toBeInstanceOf(NotFoundException);
+        expect(error.message).toBe('Position not found');
+      }
+    });
+  });
+
+  describe('getAllPositions', () => {
+    it('should return all positions', async () => {
+      const positions: PositionEntity[] = [
+        {
+          id: '1',
+          name: 'Position 1',
+          description: 'Description 1',
+          parent: null,
+          children: [],
+          users: [],
+        },
+        {
+          id: '2',
+          name: 'Position 2',
+          description: 'Description 2',
+          parent: null,
+          children: [],
+          users: [],
+        },
+      ];
+
+      jest
+        .spyOn(positionService, 'getAllPositions')
+        .mockResolvedValue(positions);
+
+      const result = await controller.getAllPositions();
+
+      expect(result).toEqual(positions);
+    });
+  });
+
+  describe('getPositionHierarchy', () => {
+    it('should return position hierarchy', async () => {
+      const hierarchyData = [
+        {
+          id: '1',
+          name: 'Position 1',
+          description: 'Description 1',
+          children: [
+            {
+              id: '2',
+              name: 'Position 2',
+              description: 'Description 2',
+              children: [],
+            },
+          ],
+        },
+      ];
+
+      jest
+        .spyOn(positionService, 'getPositionHierarchy')
+        .mockResolvedValue(hierarchyData);
+
+      const result = await controller.getPositionHierarchy();
+
+      expect(result).toEqual(hierarchyData);
+    });
+  });
+
+  describe('findOne', () => {
+    it('should return a position by id', async () => {
+      const position: PositionEntity = {
+        id: '1',
+        name: 'Position 1',
+        description: 'Description 1',
+        parent: null,
+        children: [],
+        users: [],
+      };
+
+      jest.spyOn(positionService, 'findOne').mockResolvedValue(position);
+
+      const result = await controller.findOne('1');
+
+      expect(result).toEqual(position);
+    });
+
+    it('should throw NotFoundException for non-existent position', async () => {
+      jest
+        .spyOn(positionService, 'findOne')
+        .mockRejectedValue(new NotFoundException('Position not found'));
+
+      try {
+        await controller.findOne('999');
+      } catch (error) {
+        expect(error).toBeInstanceOf(NotFoundException);
+        expect(error.message).toBe('Position not found');
+      }
+    });
+  });
+
+  describe('removePosition', () => {
+    it('should remove a position by id', async () => {
+      const id = '1';
+
+      jest.spyOn(positionService, 'deletePosition').mockResolvedValue();
+
+      await expect(controller.removePosition(id)).resolves.not.toThrow();
+    });
+
+    it('should throw HttpException for internal server error', async () => {
+      const id = '999';
+
+      jest
+        .spyOn(positionService, 'deletePosition')
+        .mockRejectedValue(new Error('Internal Server Error'));
+
+      try {
+        await controller.removePosition(id);
+      } catch (error) {
+        expect(error).toBeInstanceOf(HttpException);
+        expect(error.message).toBe('Internal Server Error');
+        expect(error.getStatus()).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+    });
+  });
+
+  describe('getPositionChildren', () => {
+    it('should return children positions of a parent', async () => {
+      const childrenPositions: PositionEntity[] = [
+        {
+          id: '2',
+          name: 'Child Position 1',
+          description: 'Child Position 1 description',
+          parent: { id: '1' } as PositionEntity,
+          children: [],
+          users: [],
+        },
+      ];
+
+      jest
+        .spyOn(positionService, 'getPositionChildren')
+        .mockResolvedValue(childrenPositions);
+
+      const result = await controller.getPositionChildren('1');
+
+      expect(result).toEqual(childrenPositions);
+    });
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 });

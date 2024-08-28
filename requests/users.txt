@@ -1,0 +1,37 @@
+1,POST    localhost:3000/users
+Content-Type: application/json
+{
+  "fullName": "John Doe",
+  "email": "johndoe@example.com",
+  "phone": "0911235690",
+  "birthDate": "1990-01-01",
+  "hireDate": "2020-01-01",
+  "gender": "M",
+  "positionId": "", optional
+  "photoId": ""  Optional
+}
+
+2,PATCH    localhost:3000/users/:id
+Content-Type: application/json
+{
+"fullName": "natnael",
+  "email": "natnael@example.com",
+  "phone": "0911235698",
+  "birthDate": "1990-01-01",
+  "hireDate": "2020-01-01",
+  "gender": "M",
+  "positionId": "", optional
+  "photoId": ""  Optional
+}
+
+3, GET     localhost:3000/users
+   GET     localhost:3000/users/all
+   GET     localhost:3000/users?page=1&limit=10
+   GET     localhost:3000/users/:id
+   GET     localhost:3000/users/all
+   GET     localhost:3000/users?name
+
+
+
+
+4,DELETE   localhost:3000/users/:id

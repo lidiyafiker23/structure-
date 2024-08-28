@@ -1,19 +1,38 @@
-import { IsNotEmpty, IsString, IsUUID, IsOptional } from 'class-validator';
+import { Gender } from '../../entities/user.entity';
+import {
+  IsDate,
+  IsEmail,
+  IsNotEmpty,
+  IsPhoneNumber,
+  IsString,
+  IsUUID,
+} from 'class-validator';
+import { Transform } from 'class-transformer';
 
 export class CreateUserDto {
-  @IsNotEmpty()
   @IsString()
-  firstName: string;
-
   @IsNotEmpty()
-  @IsString()
-  lastName: string;
+  fullName: string;
 
-  @IsNotEmpty()
-  @IsUUID() // Assuming positionId is a UUID, adjust as per your position entity
+  @IsEmail()
+  email: string;
+
+  @IsPhoneNumber('ET')
+  phone: string;
+
+  @IsDate()
+  @Transform(({ value }) => new Date(value))
+  birthDate: Date;
+
+  @IsDate()
+  @Transform(({ value }) => new Date(value))
+  hireDate: Date;
+
+  gender: Gender;
+
+  @IsUUID()
   positionId: string;
 
-  @IsOptional()
-  @IsUUID() // Optional: If you want to associate a photo during creation
-  photoId?: string;
+  @IsUUID()
+  photoId: string;
 }

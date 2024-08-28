@@ -9,12 +9,12 @@ import {
   HttpException,
   HttpStatus,
 } from '@nestjs/common';
-import { PositionService } from './position.service'; // Replace with actual service name
-import { CreatePositionDto } from './dto/create-position.dto'; // Define DTO as needed
-import { UpdatePositionDto } from './dto/update-position.dto'; // Define DTO as needed
-import { PositionEntity } from '../entities/position.entity'; // Replace with actual entity name
-
+import { PositionService } from './position.service';
+import { CreatePositionDto } from './dto/create-position.dto';
+import { UpdatePositionDto } from './dto/update-position.dto';
+import { PositionEntity } from '../entities/position.entity';
 import { UsersService } from '../users/users.service';
+
 @Controller('positions')
 export class PositionsController {
   constructor(
@@ -22,14 +22,13 @@ export class PositionsController {
     private readonly usersService: UsersService,
   ) {}
 
-  @Post() // POST /positions
+  @Post()
   async createPosition(
     @Body() createPositionDto: CreatePositionDto,
   ): Promise<PositionEntity> {
     return this.positionService.createPosition(createPositionDto);
   }
-
-  // PUT /positions/:id
+  
   @Put(':id')
   async update(
     @Param('id') id: string,
@@ -38,7 +37,6 @@ export class PositionsController {
     return this.positionService.update(id, updatePositionDto);
   }
 
-  // GET /positions
   @Get()
   async getAllPositions(): Promise<PositionEntity[]> {
     return this.positionService.getAllPositions();
@@ -48,13 +46,12 @@ export class PositionsController {
   async getPositionHierarchy(): Promise<any[]> {
     return this.positionService.getPositionHierarchy();
   }
-  // GET /positions/:id
+
   @Get(':id')
-  async getPositionById(@Param('id') id: string): Promise<PositionEntity> {
-    return this.positionService.getPositionById(id);
+  async findOne(@Param('id') id: string): Promise<PositionEntity> {
+    return this.positionService.findOne(id);
   }
 
-  // DELETE /positions/:id
   @Delete(':id')
   async removePosition(@Param('id') id: string): Promise<void> {
     try {
@@ -63,13 +60,11 @@ export class PositionsController {
       throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
-  // GET /positions/:id/children
+
   @Get(':id/children')
   async getPositionChildren(
     @Param('id') id: string,
   ): Promise<PositionEntity[]> {
     return this.positionService.getPositionChildren(id);
   }
-
-  // GET /positions/hierarchy
 }

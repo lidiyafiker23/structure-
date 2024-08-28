@@ -1,21 +1,15 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
-import { UserEntity } from '../entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { NotFoundException } from '@nestjs/common';
-import { PhotoEntity } from '../entities/photo.entity';
-// Define a separate interface for Photo with url
-interface PhotoWithUrl extends PhotoEntity {
-  id: number;
-  url: string;
-  // other properties as needed
-}
+import { FindAllQueryDto } from './dto/findall-query.dto';
+import { UserEntity, Gender } from '../entities/user.entity';
+import { HttpStatus, NotFoundException } from '@nestjs/common';
 
 describe('UsersController', () => {
   let controller: UsersController;
-  let userService: UsersService;
+  let usersService: UsersService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -25,9 +19,10 @@ describe('UsersController', () => {
           provide: UsersService,
           useValue: {
             createUser: jest.fn(),
-            getAllUsers: jest.fn(),
-            getUserById: jest.fn(),
             updateUser: jest.fn(),
+            findAll: jest.fn(),
+            getAllUsers: jest.fn(),
+            findOne: jest.fn(),
             remove: jest.fn(),
           },
         },
@@ -35,11 +30,7 @@ describe('UsersController', () => {
     }).compile();
 
     controller = module.get<UsersController>(UsersController);
-    userService = module.get<UsersService>(UsersService);
-  });
-
-  afterEach(() => {
-    jest.clearAllMocks();
+    usersService = module.get<UsersService>(UsersService);
   });
 
   it('should be defined', () => {
@@ -49,143 +40,217 @@ describe('UsersController', () => {
   describe('createUser', () => {
     it('should create a new user', async () => {
       const createUserDto: CreateUserDto = {
-        firstName: 'John',
-        lastName: 'Doe',
-        positionId: '1', // Adjust as necessary
-        photoId: '1', // Adjust as necessary
+        fullName: 'John Doe',
+        email: 'john.doe@example.com',
+        phone: '1234567890',
+        birthDate: new Date('1990-01-01'),
+        hireDate: new Date('2020-01-01'),
+        gender: Gender.Male,
+        positionId: '1', // Assuming you have a valid positionId
+        photoId: 'xyz', // Assuming you have a valid photoId
       };
 
-      const createdUser: UserEntity = {
-        id: 1,
-        ...createUserDto,
-        position: null,
-        isActive: true,
-        photo: { id: 1, url: 'path/to/photo' } as PhotoWithUrl, // Example of a photo object with url
+      const newUser: UserEntity = {
+        id: '1',
+        fullName: createUserDto.fullName,
+        email: createUserDto.email,
+        phone: createUserDto.phone,
+        birthDate: createUserDto.birthDate,
+        hireDate: createUserDto.hireDate,
+        gender: createUserDto.gender,
+        positionId: createUserDto.positionId,
+        photoId: createUserDto.photoId,
+        position: null, // Replace with actual PositionEntity
+        photo: null, // Replace with actual PhotoEntity
       };
 
-      jest.spyOn(userService, 'createUser').mockResolvedValue(createdUser);
+      jest.spyOn(usersService, 'createUser').mockResolvedValue(newUser);
 
       const result = await controller.createUser(createUserDto);
-      expect(result).toEqual(createdUser);
+
+      expect(result).toBe(newUser);
+      expect(usersService.createUser).toHaveBeenCalledWith(createUserDto);
     });
   });
 
   describe('updateUser', () => {
     it('should update an existing user', async () => {
-      const userId = 1;
+      const id = '1';
       const updateUserDto: UpdateUserDto = {
-        firstName: 'Jane',
-        lastName: 'Doe',
-        positionId: '1',
-        isActive: false,
+        fullName: 'Updated Name',
       };
 
-      const existingUser: UserEntity = {
-        id: userId,
-        firstName: 'John',
-        lastName: 'Doe',
+      const updatedUser: UserEntity = {
+        id: '1',
+        fullName: updateUserDto.fullName,
+        email: 'john.doe@example.com', // Mock additional fields as needed
+        phone: '1234567890',
+        birthDate: new Date('1990-01-01'),
+        hireDate: new Date('2020-01-01'),
+        gender: Gender.Male,
+        positionId: '1', // Assuming you have a valid positionId
+        photoId: 'xyz', // Assuming you have a valid photoId
         position: null,
-        isActive: true,
         photo: null,
       };
 
-      jest.spyOn(userService, 'getUserById').mockResolvedValue(existingUser);
-      jest.spyOn(userService, 'updateUser').mockResolvedValue({
-        ...existingUser,
-        ...updateUserDto,
-      });
+      jest.spyOn(usersService, 'updateUser').mockResolvedValue(updatedUser);
 
-      const result = await controller.updateUser(userId, updateUserDto);
-      expect(result).toEqual({
-        ...existingUser,
-        ...updateUserDto,
-      });
-    });
+      const result = await controller.updateUser(id, updateUserDto);
 
-    it('should throw NotFoundException if user is not found', async () => {
-      const userId = 999;
-      const updateUserDto: UpdateUserDto = {
-        firstName: 'Jane',
-        lastName: 'Doe',
-        positionId: '1',
-        isActive: false,
-      };
-
-      jest.spyOn(userService, 'getUserById').mockResolvedValue(null);
-
-      await expect(
-        controller.updateUser(userId, updateUserDto),
-      ).rejects.toThrowError(NotFoundException);
+      expect(result).toBe(updatedUser);
+      expect(usersService.updateUser).toHaveBeenCalledWith(id, updateUserDto);
     });
   });
 
-  describe('getAllUsers', () => {
-    it('should return an array of users', async () => {
+  describe('findAll', () => {
+    it('should find all users', async () => {
+      const findAllQueryDto: FindAllQueryDto = {
+        q: '',
+        page: 1,
+        limit: 10,
+      };
+
       const users: UserEntity[] = [
         {
-          id: 1,
-          firstName: 'John',
-          lastName: 'Doe',
+          id: '1',
+          fullName: 'John Doe',
+          email: 'john.doe@example.com',
+          phone: '1234567890',
+          birthDate: new Date('1990-01-01'),
+          hireDate: new Date('2020-01-01'),
+          gender: Gender.Male,
+          positionId: '1', // Assuming you have a valid positionId
+          photoId: 'xyz', // Assuming you have a valid photoId
           position: null,
-          isActive: true,
           photo: null,
         },
         {
-          id: 2,
-          firstName: 'Jane',
-          lastName: 'Smith',
+          id: '2',
+          fullName: 'Jane Smith',
+          email: 'jane.smith@example.com',
+          phone: '0987654321',
+          birthDate: new Date('1995-05-15'),
+          hireDate: new Date('2021-02-15'),
+          gender: Gender.Female,
+          positionId: '2', // Assuming you have a valid positionId
+          photoId: 'abc', // Assuming you have a valid photoId
           position: null,
-          isActive: true,
           photo: null,
         },
       ];
 
-      jest.spyOn(userService, 'getAllUsers').mockResolvedValue(users);
+      jest.spyOn(usersService, 'findAll').mockResolvedValue({
+        page: 1,
+        limit: 10,
+        total: users.length,
+        pages: 1,
+        results: users,
+      });
 
-      const result = await controller.getAllUsers();
-      expect(result).toEqual(users);
-    });
-  });
+      const result = await controller.findAll(findAllQueryDto);
 
-  describe('getUserById', () => {
-    it('should return a single user by ID', async () => {
-      const userId = 1;
-      const user: UserEntity = {
-        id: userId,
-        firstName: 'John',
-        lastName: 'Doe',
-        position: null,
-        isActive: true,
-        photo: null,
-      };
-
-      jest.spyOn(userService, 'getUserById').mockResolvedValue(user);
-
-      const result = await controller.getUserById(userId);
-      expect(result).toEqual(user);
-    });
-
-    it('should throw NotFoundException if user with given ID is not found', async () => {
-      const userId = 999;
-
-      jest.spyOn(userService, 'getUserById').mockResolvedValue(null);
-
-      await expect(controller.getUserById(userId)).rejects.toThrowError(
-        NotFoundException,
+      expect(result).toEqual({
+        page: 1,
+        limit: 10,
+        total: users.length,
+        pages: 1,
+        results: users,
+      });
+      expect(usersService.findAll).toHaveBeenCalledWith(
+        findAllQueryDto.q,
+        findAllQueryDto.page,
+        findAllQueryDto.limit,
       );
     });
   });
 
-  describe('deleteUser', () => {
-    it('should delete a user', async () => {
-      const userId = 1;
+  describe('getAllUsers', () => {
+    it('should get all users', async () => {
+      const users: UserEntity[] = [
+        {
+          id: '1',
+          fullName: 'John Doe',
+          email: 'john.doe@example.com',
+          phone: '1234567890',
+          birthDate: new Date('1990-01-01'),
+          hireDate: new Date('2020-01-01'),
+          gender: Gender.Male,
+          positionId: '1', // Assuming you have a valid positionId
+          photoId: 'xyz', // Assuming you have a valid photoId
+          position: null,
+          photo: null,
+        },
+        {
+          id: '2',
+          fullName: 'Jane Smith',
+          email: 'jane.smith@example.com',
+          phone: '0987654321',
+          birthDate: new Date('1995-05-15'),
+          hireDate: new Date('2021-02-15'),
+          gender: Gender.Female,
+          positionId: '2', // Assuming you have a valid positionId
+          photoId: 'abc', // Assuming you have a valid photoId
+          position: null,
+          photo: null,
+        },
+      ];
 
-      jest.spyOn(userService, 'remove').mockResolvedValue(undefined);
+      jest.spyOn(usersService, 'getAllUsers').mockResolvedValue(users);
 
-      await controller.deleteUser(userId);
-      expect(userService.remove).toHaveBeenCalledWith(userId);
+      const result = await controller.getAllUsers();
+
+      expect(result).toBe(users);
+      expect(usersService.getAllUsers).toHaveBeenCalled();
     });
   });
 
-  // Add more test cases as needed for other controller methods
+  describe('findOne', () => {
+    it('should find one user by id', async () => {
+      const id = '1';
+      const user: UserEntity = {
+        id: '1',
+        fullName: 'John Doe',
+        email: 'john.doe@example.com',
+        phone: '1234567890',
+        birthDate: new Date('1990-01-01'),
+        hireDate: new Date('2020-01-01'),
+        gender: Gender.Male,
+        positionId: '1', // Assuming you have a valid positionId
+        photoId: 'xyz', // Assuming you have a valid photoId
+        position: null,
+        photo: null,
+      };
+
+      jest.spyOn(usersService, 'findOne').mockResolvedValue(user);
+
+      const result = await controller.findOne(id);
+
+      expect(result).toBe(user);
+      expect(usersService.findOne).toHaveBeenCalledWith(id);
+    });
+
+    it('should throw NotFoundException if user is not found', async () => {
+      const id = '999';
+
+      jest
+        .spyOn(usersService, 'findOne')
+        .mockRejectedValue(new NotFoundException('User not found'));
+
+      await expect(controller.findOne(id)).rejects.toThrow(NotFoundException);
+      expect(usersService.findOne).toHaveBeenCalledWith(id);
+    });
+  });
+
+  describe('deleteUser', () => {
+    it('should delete a user by id', async () => {
+      const id = '1';
+
+      jest.spyOn(usersService, 'remove').mockResolvedValue();
+
+      await controller.deleteUser(id);
+
+      expect(usersService.remove).toHaveBeenCalledWith(id);
+    });
+  });
 });

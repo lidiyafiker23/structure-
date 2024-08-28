@@ -5,20 +5,59 @@ import {
   ManyToOne,
   OneToOne,
   JoinColumn,
-} from 'typeorm';                              
+} from 'typeorm';
 import { PositionEntity } from './position.entity';
 import { PhotoEntity } from './photo.entity';
+import {
+  IsDate,
+  IsEmail,
+  IsEnum,
+  IsNotEmpty,
+  IsPhoneNumber,
+  IsString,
+  IsUUID,
+} from 'class-validator';
+import { Transform } from 'class-transformer';
+
+export enum Gender {
+  Male = 'M',
+  Female = 'F',
+}
 
 @Entity('user')
 export class UserEntity {
-  @PrimaryGeneratedColumn() 
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
+  @IsString()
+  @IsNotEmpty()
   @Column()
-  firstName: string;
+  fullName: string;
 
-  @Column()
-  lastName: string;
+  @IsEmail()
+  @Column({ unique: true })
+  email: string;
+
+  @IsPhoneNumber('ET')
+  @Column({ unique: true })
+  phone: string;
+
+  @IsDate()
+  @Transform(({ value }) => new Date(value))
+  @Column('date')
+  birthDate: Date;
+
+  @IsDate()
+  @Transform(({ value }) => new Date(value))
+  @Column('date')
+  hireDate: Date;
+
+  @IsEnum(Gender)
+  @Column({
+    type: 'enum',
+    enum: Gender,
+  })
+  gender: Gender;
 
   @ManyToOne(() => PositionEntity, (position) => position.users, {
     onDelete: 'SET NULL',
@@ -26,17 +65,18 @@ export class UserEntity {
   @JoinColumn({ name: 'position_id' })
   position: PositionEntity;
 
-  @Column({ default: true })
-  isActive: boolean;
-
   @OneToOne(() => PhotoEntity, {
     cascade: true,
     nullable: true,
-    onDelete: 'CASCADE',
   })
-    
   @JoinColumn({ name: 'photo_id' })
   photo: PhotoEntity;
 
- 
+  @IsUUID()
+  @Column({ nullable: true })
+  photoId: string;
+
+  @IsUUID()
+  @Column({ nullable: true })
+  positionId: string;
 }

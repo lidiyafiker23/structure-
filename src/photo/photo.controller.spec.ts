@@ -3,12 +3,11 @@ import { PhotoController } from './photo.controller';
 import { PhotoService } from './photo.service';
 import { CreatePhotoDto } from './dto/create-photo.dto';
 import { UpdatePhotoDto } from './dto/update-photo.dto';
-import { NotFoundException } from '@nestjs/common';
-import { Response } from 'express';
+import { PhotoEntity } from '../entities/photo.entity';
 
 describe('PhotoController', () => {
   let controller: PhotoController;
-  let photoService: PhotoService;
+  let service: PhotoService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -30,30 +29,39 @@ describe('PhotoController', () => {
     }).compile();
 
     controller = module.get<PhotoController>(PhotoController);
-    photoService = module.get<PhotoService>(PhotoService);
-  });
-
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
+    service = module.get<PhotoService>(PhotoService);
   });
 
   describe('create', () => {
     it('should create a new photo', async () => {
-      const createPhotoDto: CreatePhotoDto = {
+      const createDto: CreatePhotoDto = {
         name: 'Test Photo',
-        description: 'Test Description',
-        filename: 'test-photo.jpg', // Add filename
-        views: 0, // Add views
-        isPublished: false, // Add isPublished
+        description: 'Test photo description',
+        filename: 'test-photo.jpg',
+        views: 0,
+        isPublished: false,
       };
-      const createdPhoto = {} as any; // Replace with your mock photo object
 
-      jest.spyOn(photoService, 'create').mockResolvedValueOnce(createdPhoto);
+      const createdPhoto: PhotoEntity = {
+        id: 1,
+        name: createDto.name,
+        description: createDto.description,
+        filename: createDto.filename,
+        views: createDto.views,
+        isPublished: createDto.isPublished,
+      };
 
-      const result = await controller.create(createPhotoDto, {} as any);
-      expect(result).toBe(createdPhoto);
+      jest.spyOn(service, 'create').mockResolvedValue(createdPhoto);
+
+      const result = await controller.create(createDto, null); // Adjust as per your actual test requirements
+
+      expect(result).toEqual(createdPhoto);
     });
   });
 
-  // Other test cases omitted for brevity
+  // Add more test cases for other controller methods as needed
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
 });

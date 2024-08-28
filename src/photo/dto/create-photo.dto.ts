@@ -15,15 +15,15 @@ export class CreatePhotoDto {
 
   @IsNotEmpty()
   @IsNumber()
-  views: number;
+  views?: number;
 
   @IsNotEmpty()
   @IsBoolean()
-  isPublished: boolean;
+  isPublished?: boolean;
 
-  // Example of adding a default value
   constructor(createPhotoDto: Partial<CreatePhotoDto>) {
     Object.assign(this, createPhotoDto);
-    this.isPublished = this.isPublished || false; // Default to false if not specified
+    this.views = this.views || 0;
+    this.isPublished = this.isPublished || false;
   }
 }

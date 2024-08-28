@@ -10,17 +10,15 @@ import { CreatePositionDto } from './dto/create-position.dto';
 import { UpdatePositionDto } from './dto/update-position.dto';
 import { PositionEntity } from '../entities/position.entity';
 import { UserEntity } from '../entities/user.entity';
-import { UsersService } from '../users/users.service';
 import { PhotoEntity } from '../entities/photo.entity';
 @Injectable()
 export class PositionService {
   constructor(
     @InjectRepository(PositionEntity)
     private readonly positionRepository: Repository<PositionEntity>,
-    @InjectRepository(UserEntity) // Inject UserEntity repository
+    @InjectRepository(UserEntity)
     private readonly userRepository: Repository<UserEntity>,
-    private readonly userService: UsersService,
-    @InjectRepository(PhotoEntity) // Inject PhotoEntity repository
+    @InjectRepository(PhotoEntity)
     private readonly photoRepository: Repository<PhotoEntity>,
   ) {}
 
@@ -30,25 +28,15 @@ export class PositionService {
     const { name, description, parentId } = createPositionDto;
 
     let parentPosition: PositionEntity | null = null;
-    if (parentId) {
-      parentPosition = await this.positionRepository.findOne({
-        where: { id: parentId },
-      });
-      if (!parentPosition) {
-        throw new NotFoundException(
-          `Parent position with ID ${parentId} not found.`,
-        );
-      }
-    }
-
     const newPosition = this.positionRepository.create({
       name,
       description,
-      parent: parentPosition,
+      parent_id: parentId,
     });
 
-    return this.positionRepository.save(newPosition);
+    return await this.positionRepository.save(newPosition);
   }
+  
 
   async update(
     id: string,
@@ -75,7 +63,7 @@ export class PositionService {
     return await this.positionRepository.find();
   }
 
-  async getPositionById(id: string): Promise<PositionEntity> {
+  async findOne(id: string): Promise<PositionEntity> {
     const position = await this.positionRepository.findOne({
       where: { id },
       relations: ['parent', 'children', 'users'],

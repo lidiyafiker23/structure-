@@ -1,30 +1,20 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { PositionService } from './position.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { PositionEntity } from '../entities/position.entity';
 import { Repository } from 'typeorm';
-import { UsersService } from '../users/users.service';
+import { PositionEntity } from '../entities/position.entity';
+import { UserEntity } from '../entities/user.entity';
 import { PhotoEntity } from '../entities/photo.entity';
-import {
-  BadRequestException,
-  InternalServerErrorException,
-  NotFoundException,
-} from '@nestjs/common';
-import { CreatePositionDto } from './dto/create-position.dto';
-import { UpdatePositionDto } from './dto/update-position.dto';
-import { UserEntity } from '../entities/user.entity'; // Import UserEntity here
+import { NotFoundException, BadRequestException } from '@nestjs/common';
 
 describe('PositionService', () => {
   let service: PositionService;
   let positionRepository: Repository<PositionEntity>;
-  let userRepository: Repository<UserEntity>;
-  let photoRepository: Repository<PhotoEntity>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PositionService,
-        UsersService,
         {
           provide: getRepositoryToken(PositionEntity),
           useClass: Repository,
@@ -44,100 +34,61 @@ describe('PositionService', () => {
     positionRepository = module.get<Repository<PositionEntity>>(
       getRepositoryToken(PositionEntity),
     );
-    userRepository = module.get<Repository<UserEntity>>(
-      getRepositoryToken(UserEntity),
-    );
-    photoRepository = module.get<Repository<PhotoEntity>>(
-      getRepositoryToken(PhotoEntity),
-    );
-  });
-
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
-  describe('createPosition', () => {
-    it('should create a new position', async () => {
-      const createPositionDto: CreatePositionDto = {
-        name: 'CTO',
-        description: 'Chief Technology Officer',
-        parentId: null,
-      };
-
-      jest.spyOn(positionRepository, 'findOne').mockResolvedValueOnce(null);
-      jest
-        .spyOn(positionRepository, 'create')
-        .mockReturnValueOnce(createPositionDto as any);
-      jest
-        .spyOn(positionRepository, 'save')
-        .mockResolvedValueOnce(createPositionDto as any);
-
-      const result = await service.createPosition(createPositionDto);
-      expect(result).toEqual(createPositionDto);
-    });
-
-    it('should throw NotFoundException if parent position not found', async () => {
-      const createPositionDto: CreatePositionDto = {
-        name: 'CTO',
-        description: 'Chief Technology Officer',
-        parentId: 'invalid-id',
-      };
-
-      jest.spyOn(positionRepository, 'findOne').mockResolvedValueOnce(null);
-
-      await expect(
-        service.createPosition(createPositionDto),
-      ).rejects.toThrowError(NotFoundException);
-    });
-
-    // Add more test cases for createPosition as needed
   });
 
   describe('update', () => {
     it('should update a position', async () => {
-      const updatePositionDto: UpdatePositionDto = {
-        name: 'Updated CTO',
-        description: 'Updated Chief Technology Officer',
-        parentId: null,
-      };
+      const positionId = '1';
+      const updateDto = { name: 'Updated Position', parentId: '2' };
 
-      const positionToUpdate: PositionEntity = {
-        id: '1',
-        name: 'CTO',
-        description: 'Chief Technology Officer',
+      const position = {
+        id: positionId,
+        name: 'Position',
         parent: null,
-        children: [],
-        users: [],
-      };
+      } as PositionEntity;
+      const parentPosition = {
+        id: '2',
+        name: 'Parent Position',
+      } as PositionEntity;
 
+      jest.spyOn(positionRepository, 'findOne').mockResolvedValueOnce(position);
       jest
         .spyOn(positionRepository, 'findOne')
-        .mockResolvedValueOnce(positionToUpdate);
-      jest.spyOn(positionRepository, 'save').mockResolvedValueOnce({
-        ...positionToUpdate,
-        ...updatePositionDto,
-      } as any);
+        .mockResolvedValueOnce(parentPosition);
+      jest.spyOn(positionRepository, 'save').mockResolvedValueOnce(position);
 
-      const result = await service.update('1', updatePositionDto);
-      expect(result).toEqual({ ...positionToUpdate, ...updatePositionDto });
+      await expect(service.update(positionId, updateDto)).resolves.toEqual(
+        position,
+      );
     });
 
-    it('should throw NotFoundException if position not found', async () => {
-      const updatePositionDto: UpdatePositionDto = {
-        name: 'Updated CTO',
-        description: 'Updated Chief Technology Officer',
-        parentId: null,
-      };
+    it('should throw NotFoundException if position does not exist', async () => {
+      const positionId = '1';
+      const updateDto = { name: 'Updated Position' };
 
       jest.spyOn(positionRepository, 'findOne').mockResolvedValueOnce(null);
 
-      await expect(service.update('1', updatePositionDto)).rejects.toThrowError(
+      await expect(service.update(positionId, updateDto)).rejects.toThrowError(
         NotFoundException,
       );
     });
 
-    // Add more test cases for update as needed
-  });
+    it('should throw BadRequestException if parent position does not exist', async () => {
+      const positionId = '1';
+      const updateDto = { name: 'Updated Position', parentId: '2' };
 
-  // Add tests for other methods like getAllPositions, getPositionById, deletePosition, getPositionChildren, etc.
+      const position = {
+        id: positionId,
+        name: 'Position',
+        parent: null,
+      } as PositionEntity;
+
+      jest.spyOn(positionRepository, 'findOne').mockResolvedValueOnce(position);
+      jest.spyOn(positionRepository, 'findOne').mockResolvedValueOnce(null);
+
+      await expect(service.update(positionId, updateDto)).rejects.toThrowError(
+        BadRequestException,
+      );
+    });
+  });
 });

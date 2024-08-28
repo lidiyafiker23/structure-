@@ -1,8 +1,10 @@
+// photo.service.spec.ts
+
 import { Test, TestingModule } from '@nestjs/testing';
 import { PhotoService } from './photo.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { PhotoEntity } from '../entities/photo.entity';
+import { Repository } from 'typeorm';
 import { CreatePhotoDto } from './dto/create-photo.dto';
 import { UpdatePhotoDto } from './dto/update-photo.dto';
 import { NotFoundException } from '@nestjs/common';
@@ -37,128 +39,155 @@ describe('PhotoService', () => {
       const createPhotoDto: CreatePhotoDto = {
         name: 'Test Photo',
         description: 'Test Description',
-        filename: 'test.jpg',
+        filename: 'test-photo.jpg',
         views: 0,
         isPublished: false,
       };
 
-      const mockPhoto = new PhotoEntity();
-      mockPhoto.id = 1;
-      mockPhoto.name = createPhotoDto.name;
-      mockPhoto.description = createPhotoDto.description;
-      mockPhoto.filename = createPhotoDto.filename;
-      mockPhoto.views = createPhotoDto.views;
-
-      jest.spyOn(repository, 'create').mockReturnValue(mockPhoto);
-      jest.spyOn(repository, 'save').mockResolvedValue(mockPhoto);
+      jest
+        .spyOn(repository, 'create')
+        .mockReturnValueOnce(createPhotoDto as any);
+      jest
+        .spyOn(repository, 'save')
+        .mockResolvedValueOnce(createPhotoDto as any);
 
       const result = await service.create(
         createPhotoDto,
         createPhotoDto.filename,
       );
-      expect(result).toEqual(mockPhoto);
+      expect(result).toEqual(createPhotoDto);
+    });
+  });
+
+  describe('findAll', () => {
+    it('should return an array of photos', async () => {
+      const photoEntity: PhotoEntity = {
+        id: 1,
+        name: 'Test Photo',
+        description: 'Test Description',
+        filename: 'test-photo.jpg',
+        views: 0,
+        isPublished: false,
+      };
+
+      jest.spyOn(repository, 'find').mockResolvedValueOnce([photoEntity]);
+
+      const result = await service.findAll();
+      expect(result).toEqual([photoEntity]);
     });
   });
 
   describe('findOne', () => {
-    it('should find a photo by ID', async () => {
-      const mockPhotoId = 1;
-      const mockPhoto = new PhotoEntity();
-      mockPhoto.id = mockPhotoId;
-      mockPhoto.name = 'Test Photo';
-      mockPhoto.description = 'Test Description';
-      mockPhoto.filename = 'test.jpg';
-      mockPhoto.views = 0;
+    it('should return a photo by ID', async () => {
+      const photoEntity: PhotoEntity = {
+        id: 1,
+        name: 'Test Photo',
+        description: 'Test Description',
+        filename: 'test-photo.jpg',
+        views: 0,
+        isPublished: false,
+      };
 
-      jest.spyOn(repository, 'findOne').mockResolvedValue(mockPhoto);
+      jest.spyOn(repository, 'findOne').mockResolvedValueOnce(photoEntity);
 
-      const result = await service.findOne(mockPhotoId);
-      expect(result).toEqual(mockPhoto);
+      const result = await service.findOne(1);
+      expect(result).toEqual(photoEntity);
     });
 
-    it('should throw NotFoundException if photo with given ID does not exist', async () => {
-      const mockPhotoId = 999;
+    it('should throw NotFoundException if photo with given ID is not found', async () => {
+      jest.spyOn(repository, 'findOne').mockResolvedValueOnce(undefined);
 
-      jest.spyOn(repository, 'findOne').mockResolvedValue(undefined);
-
-      await expect(service.findOne(mockPhotoId)).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(service.findOne(999)).rejects.toThrow(NotFoundException);
     });
   });
 
   describe('update', () => {
-    it('should update an existing photo', async () => {
-      const mockPhotoId = 1;
+    it('should update a photo by ID', async () => {
       const updatePhotoDto: UpdatePhotoDto = {
         name: 'Updated Photo Name',
         description: 'Updated Description',
+        filename: 'test-photo.jpg',
+        views: 10,
+        isPublished: true,
       };
 
-      const mockExistingPhoto = new PhotoEntity();
-      mockExistingPhoto.id = mockPhotoId;
-      mockExistingPhoto.name = 'Test Photo';
-      mockExistingPhoto.description = 'Test Description';
-      mockExistingPhoto.filename = 'test.jpg';
-      mockExistingPhoto.views = 0;
+      const existingPhoto: PhotoEntity = {
+        id: 1,
+        name: 'Original Photo Name',
+        description: 'Original Description',
+        filename: 'test-photo.jpg',
+        views: 0,
+        isPublished: false,
+      };
 
-      const mockUpdatedPhoto = new PhotoEntity();
-      mockUpdatedPhoto.id = mockPhotoId;
-      mockUpdatedPhoto.name = updatePhotoDto.name;
-      mockUpdatedPhoto.description = updatePhotoDto.description;
-      mockUpdatedPhoto.filename = 'test.jpg';
-      mockUpdatedPhoto.views = 0;
+      jest.spyOn(repository, 'preload').mockResolvedValueOnce(existingPhoto);
+      jest
+        .spyOn(repository, 'save')
+        .mockResolvedValueOnce({ ...existingPhoto, ...updatePhotoDto });
 
-      jest.spyOn(repository, 'preload').mockResolvedValue(mockUpdatedPhoto);
-      jest.spyOn(repository, 'save').mockResolvedValue(mockUpdatedPhoto);
-
-      const result = await service.update(mockPhotoId, updatePhotoDto);
-      expect(result).toEqual(mockUpdatedPhoto);
+      const result = await service.update(1, updatePhotoDto);
+      expect(result).toEqual({ ...existingPhoto, ...updatePhotoDto });
     });
 
-    it('should throw NotFoundException if photo to update does not exist', async () => {
-      const mockPhotoId = 999;
+    it('should throw NotFoundException if photo with given ID is not found', async () => {
+      jest.spyOn(repository, 'preload').mockResolvedValueOnce(undefined);
+
       const updatePhotoDto: UpdatePhotoDto = {
         name: 'Updated Photo Name',
         description: 'Updated Description',
+        filename: 'test-photo.jpg',
+        views: 10,
+        isPublished: true,
       };
 
-      jest.spyOn(repository, 'preload').mockResolvedValue(undefined);
-
-      await expect(service.update(mockPhotoId, updatePhotoDto)).rejects.toThrow(
+      await expect(service.update(999, updatePhotoDto)).rejects.toThrow(
         NotFoundException,
       );
     });
   });
 
- describe('remove', () => {
-   it('should delete a photo by ID', async () => {
-     const mockPhotoId = '1'; // Ensure mockPhotoId is treated as a string
-     const mockPhoto = new PhotoEntity();
-     mockPhoto.id = 1;
-     mockPhoto.name = 'Test Photo';
-     mockPhoto.description = 'Test Description';
-     mockPhoto.filename = 'test.jpg';
-     mockPhoto.views = 0;
+  describe('remove', () => {
+    it('should remove a photo by ID', async () => {
+      const existingPhoto: PhotoEntity = {
+        id: 1,
+        name: 'Test Photo',
+        description: 'Test Description',
+        filename: 'test-photo.jpg',
+        views: 0,
+        isPublished: false,
+      };
 
-     jest.spyOn(service, 'findOne').mockResolvedValue(mockPhoto);
-     jest.spyOn(repository, 'remove').mockResolvedValue(undefined); // Ensure remove is correctly mocked
+      jest.spyOn(repository, 'findOne').mockResolvedValueOnce(existingPhoto);
+      jest.spyOn(repository, 'remove').mockResolvedValueOnce(undefined);
 
-     await service.remove(mockPhotoId);
-     expect(repository.remove).toHaveBeenCalledWith(mockPhoto);
-   });
+      await service.remove(1);
 
-   it('should throw NotFoundException if photo to delete does not exist', async () => {
-     const mockPhotoId = '999'; // Ensure mockPhotoId is treated as a string
+      expect(repository.remove).toHaveBeenCalledWith(existingPhoto);
+    });
 
-     jest.spyOn(service, 'findOne').mockResolvedValue(undefined); // Ensure findOne resolves to undefined
+    it('should throw NotFoundException if photo with given ID is not found', async () => {
+      jest.spyOn(repository, 'findOne').mockResolvedValueOnce(undefined);
 
-     await expect(service.remove(mockPhotoId)).rejects.toThrow(
-       NotFoundException,
-     );
-   });
- });
+      await expect(service.remove(999)).rejects.toThrow(NotFoundException);
+    });
+  });
 
+  describe('incrementViewCount', () => {
+    it('should increment view count of a photo by ID', async () => {
+      const existingPhoto: PhotoEntity = {
+        id: 1,
+        name: 'Test Photo',
+        description: 'Test Description',
+        filename: 'test-photo.jpg',
+        views: 0,
+        isPublished: false,
+      };
 
-  // Add more tests for other methods as needed
+      jest.spyOn(repository, 'increment').mockResolvedValueOnce({} as any);
+
+      await service.incrementViewCount(1);
+
+      expect(repository.increment).toHaveBeenCalledWith({ id: 1 }, 'views', 1);
+    });
+  });
 });

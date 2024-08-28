@@ -1,102 +1,87 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Like, QueryFailedError, Repository } from 'typeorm';
 import { UserEntity } from '../entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { PositionEntity } from '../entities/position.entity';
-import { PhotoEntity } from '../entities/photo.entity';
+import { PositionService } from './../../src/position/position.service';
+import { PhotoService } from '../photo/photo.service'
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(UserEntity)
     private readonly userRepository: Repository<UserEntity>,
-    @InjectRepository(PositionEntity)
-    private readonly positionRepository: Repository<PositionEntity>,
-    @InjectRepository(PhotoEntity)
-    private readonly photoRepository: Repository<PhotoEntity>,
+    private positionService: PositionService,
+    private photoService: PhotoService,
   ) {}
 
   async createUser(createUserDto: CreateUserDto): Promise<UserEntity> {
-    const { firstName, lastName, positionId, photoId } = createUserDto;
-
-    const position = await this.positionRepository.findOne({
-      where: { id: positionId },
-    });
-    if (!position) {
-      throw new NotFoundException(`Position with ID "${positionId}" not found`);
+    const user = new UserEntity();
+    Object.assign(user, createUserDto);
+    if (createUserDto.positionId) {
+      user.position = await this.positionService.findOne(
+        createUserDto.positionId,
+      );
+    }
+    if (createUserDto.photoId) {
+      user.photo = await this.photoService.findOne(createUserDto.photoId);
     }
 
-    let photo: PhotoEntity | undefined;
-    if (photoId) {
-      photo = await this.photoRepository.findOne({ where: { id: +photoId } });
-      if (!photo) {
-        throw new NotFoundException(`Photo with ID "${photoId}" not found`);
+    try {
+      return await this.userRepository.save(user);
+    } catch (err: unknown) {
+      if (
+        err instanceof QueryFailedError &&
+        err.driverError?.code === '23505'    //23505, which indicates a unique constraint violation.
+      ) {
+        if ((err.driverError?.detail as string).includes('email')) {
+          throw new BadRequestException(
+            'Employee with this email already exists.',
+          );
+        } else {
+          throw new BadRequestException(
+            'Employee with this phone number already exists.',
+          );
+        }
       }
+      throw err;
     }
-
-    const user = this.userRepository.create({
-      firstName,
-      lastName,
-      position,
-      photo,
-      isActive: true,
-    });
-
-    return this.userRepository.save(user);
   }
+
+
+//   Summary
+// This method handles the creation of a new user entity:
+
+// Creates a new UserEntity and assigns properties from the DTO.
+// Sets the user's position and photo based on provided IDs.
+// Attempts to save the user to the database.
+// Catches and handles unique constraint violations, providing specific error messages for email and phone number conflicts.
 
   async updateUser(
-    id: number,
+    id: string,
     updateUserDto: UpdateUserDto,
   ): Promise<UserEntity> {
-    const user = await this.userRepository.findOne({
-      where: { id },
-      relations: ['position', 'photo'],
-    });
-    if (!user) {
-      throw new NotFoundException('User not found');
+    const user = await this.findOne(id);
+    if (updateUserDto.positionId) {
+      user.position = await this.positionService.findOne(
+        updateUserDto.positionId,
+      );
     }
+    Object.assign(user, updateUserDto);
 
-    const { firstName, lastName, positionId, isActive, photoId } =
-      updateUserDto;
-
-    if (positionId !== undefined) {
-      const position = await this.positionRepository.findOne({
-        where: { id: positionId },
-      });
-      if (!position) {
-        throw new NotFoundException(
-          `Position with ID "${positionId}" not found`,
-        );
-      }
-      user.position = position;
+    try {
+      return await this.userRepository.save(user);
+    } catch (err) {
+      throw new BadRequestException(`Error updating user: ${err.message}`);
     }
-    if (photoId !== undefined) {
-      const photoIdNumber = Number(photoId);
-      if (isNaN(photoIdNumber)) {
-        throw new NotFoundException(`Photo with ID "${photoId}" not found`);
-      }
-      const photo = await this.photoRepository.findOne({
-        where: { id: photoIdNumber },
-      });
-      if (!photo) {
-        throw new NotFoundException(`Photo with ID "${photoId}" not found`);
-      }
-      user.photo = photo;
-    }
-
-    if (isActive !== undefined) {
-      user.isActive = isActive;
-    }
-
-    user.firstName = firstName ?? user.firstName;
-    user.lastName = lastName ?? user.lastName;
-
-    return this.userRepository.save(user);
+    
   }
 
-  async getUserById(id: number): Promise<UserEntity> {
+  async findOne(id: string): Promise<UserEntity> {
     const user = await this.userRepository.findOne({
       where: { id },
       relations: ['position', 'photo'],
@@ -111,8 +96,32 @@ export class UsersService {
     return this.userRepository.find({ relations: ['position', 'photo'] });
   }
 
-  async remove(id: number): Promise<void> {
-    const user = await this.userRepository.findOne({ where: { id } });
+  async findAll(
+    q = '',
+    page = 1,
+    limit = 10,
+  ): Promise<{
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+    results: UserEntity[];
+  }> {
+    const skip = (page - 1) * limit;
+    const [results, total] = await this.userRepository.findAndCount({
+      skip,
+      take: limit,
+      where: { fullName: Like(`%${q}%`) },
+      order: { fullName: 'ASC' },
+    });
+
+    const pages = Math.ceil(total / limit);
+
+    return { page, limit, total, pages, results };
+  }
+
+  async remove(id: string): Promise<void> {
+    const user = await this.findOne(id);
     if (!user) {
       throw new NotFoundException('User not found');
     }

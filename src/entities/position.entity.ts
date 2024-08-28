@@ -1,5 +1,3 @@
-// position.entity.ts
-
 import {
   Entity,
   Column,
@@ -8,6 +6,7 @@ import {
   OneToMany,
   JoinColumn,
 } from 'typeorm';
+import { IsString, IsNotEmpty } from 'class-validator';
 import { UserEntity } from './user.entity';
 
 @Entity('position')
@@ -16,10 +15,19 @@ export class PositionEntity {
   id: string;
 
   @Column()
+  @IsString()
+  @IsNotEmpty()
   name: string;
 
   @Column()
+  @IsString()
+  @IsNotEmpty()
   description: string;
+
+  @Column()
+  @IsString()
+  @IsNotEmpty()
+  parent_id: string;
 
   @ManyToOne(() => PositionEntity, (parent) => parent.children, {
     onDelete: 'CASCADE',
@@ -33,5 +41,3 @@ export class PositionEntity {
   @OneToMany(() => UserEntity, (user) => user.position, { cascade: true })
   users: UserEntity[];
 }
-
-

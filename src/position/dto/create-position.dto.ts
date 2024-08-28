@@ -11,5 +11,6 @@ export class CreatePositionDto {
 
   @IsOptional()
   @IsUUID()
-  parentId?: string; // Optional parent ID, used for establishing parent-child relationships
+  parentId?: string; 
 }
+

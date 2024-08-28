@@ -8,11 +8,12 @@ import { UserEntity } from '../entities/user.entity';
 import { PhotoEntity } from '../entities/photo.entity';
 import { PhotoModule } from '../photo/photo.module';
 
+
 @Module({
   imports: [
     TypeOrmModule.forFeature([PositionEntity, UserEntity, PhotoEntity]),
+    forwardRef(() => UsersModule), // Use forwardRef for circular dependency
     PhotoModule,
-    forwardRef(() => UsersModule), // Use forwardRef for UsersModule
   ],
   controllers: [PositionsController],
   providers: [PositionService],

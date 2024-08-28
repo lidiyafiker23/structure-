@@ -14,11 +14,9 @@ export class PhotoEntity {
   @Column()
   filename: string;
 
-  @Column('double precision', { default: 0 })
+  @Column('int', { default: 0 })
   views: number;
 
   @Column({ default: false })
   isPublished: boolean;
-
-
 }

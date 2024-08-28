@@ -19,10 +19,11 @@ export class PhotoService {
     const photo = this.photoRepository.create({
       ...createPhotoDto,
       filename,
-      views: 0, // Ensure views default to 0
+      views: 0,
     });
     return this.photoRepository.save(photo);
   }
+
   findAll(): Promise<PhotoEntity[]> {
     return this.photoRepository.find();
   }
@@ -35,8 +36,7 @@ export class PhotoService {
     if (typeof identifier === 'object') {
       options = identifier;
     } else {
-      // Assuming identifier is a string or number (usually an ID)
-      options = { where: { id: +identifier } }; // Convert to number
+      options = { where: { id: +identifier } };
     }
 
     const photo = await this.photoRepository.findOne(options);
@@ -82,7 +82,7 @@ export class PhotoService {
     return this.photoRepository.save(photo);
   }
 
-  async remove(id: string): Promise<void> {
+  async remove(id: number): Promise<void> {
     const photo = await this.findOne(id);
     await this.photoRepository.remove(photo);
   }
